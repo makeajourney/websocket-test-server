@@ -21,7 +21,7 @@
 
   // 화면에 message를 보여줌
   function addMessage(message) {
-          var msg = $("<div>").addClass("media-body").append($("<p>").text(message.content));
+          var msg = $("<div>").addClass("media-body").append($("<p>").text(message));
           $("#messages").append($("<div>").addClass("media").append(msg));
   }
 
@@ -51,7 +51,7 @@
             alert("socket has been opened!")
           }
           socket.onmessage = function(e) {
-                  addMessage(JSON.parse(e.data));
+                  addMessage(e.data);
           }
 
           $("#chatbox").submit(function() {
@@ -62,9 +62,7 @@
                           return false;
                   }
                   waitForSocketConnection(socket, function() {
-                          socket.send(JSON.stringify({
-                                  "content": msgBox.val()
-                                }));
+                          socket.send(msgBox.val());
                           msgBox.val("");
                   });
                   return false;

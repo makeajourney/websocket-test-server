@@ -13,21 +13,17 @@ const messageBufferSize = 256
 
 type Client struct {
 	conn *websocket.Conn
-	send chan *Message
-}
-
-type Message struct {
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
+	send chan string
 }
 
 func newClient(conn *websocket.Conn) {
 	c := &Client{
 		conn: conn,
-		send: make(chan *Message, messageBufferSize),
+		send: make(chan string, messageBufferSize),
 	}
 	clients = append(clients, c)
 
+	c.send <- string("connected at: " + time.Now().Format(time.UnixDate))
 	go c.readLoop()
 	go c.writeLoop()
 }
@@ -62,25 +58,23 @@ func (c *Client) writeLoop() {
 	}
 }
 
-func broadcast(m *Message) {
+func broadcast(m string) {
 	for _, client := range clients {
 		client.send <- m
 	}
 }
 
-func (c *Client) read() (*Message, error) {
-	var msg *Message
-	if err := c.conn.ReadJSON(&msg); err != nil {
-		return nil, err
+func (c *Client) read() (string, error) {
+	_, msg, err := c.conn.ReadMessage()
+	if err != nil {
+		return "", err
 	}
-	msg.Content = "server : " + msg.Content
-	msg.CreatedAt = time.Now()
-	log.Println("read from websocket:", msg)
+	log.Printf("read from websocket: %s", msg)
 
-	return msg, nil
+	return string(msg), nil
 }
 
-func (c *Client) write(m *Message) error {
-	log.Println("write to websocket:", m)
-	return c.conn.WriteJSON(m)
+func (c *Client) write(m string) error {
+	log.Printf("write to websocket: %s", m)
+	return c.conn.WriteMessage(websocket.TextMessage, []byte(m))
 }
