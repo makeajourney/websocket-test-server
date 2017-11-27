@@ -1,13 +1,8 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/julienschmidt/httprouter"
-	"github.com/unrolled/render"
-	"github.com/urfave/negroni"
 )
 
 const (
@@ -15,34 +10,19 @@ const (
 )
 
 var (
-	renderer *render.Render
+	router   *gin.Engine
 	upgrader = &websocket.Upgrader{
 		ReadBufferSize:  socketBufferSize,
 		WriteBufferSize: socketBufferSize,
 	}
 )
 
-func init() {
-	renderer = render.New()
-}
-
 func main() {
-	router := httprouter.New()
+	router = gin.Default()
 
-	router.GET("/", func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-		renderer.HTML(w, http.StatusOK, "index", nil)
-	})
+	router.LoadHTMLGlob("templates/*")
 
-	router.GET("/ws/", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		socket, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Fatal("ServeHTTP:", err)
-			return
-		}
-		newClient(socket)
-	})
+	initializeRoutes()
 
-	n := negroni.Classic()
-	n.UseHandler(router)
-	n.Run(":3000")
+	router.Run()
 }
